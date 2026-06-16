@@ -8,8 +8,7 @@ services:
     image: rai026-llm:dev
     env_file:
       - .env
-    ports:
-      - "8000:8000"
+    network_mode: host
     volumes:
       - ./:/workspaces/R-AI-026/llm-server
     command: /bin/bash -lc "uv sync --all-extras && ./run.sh"
