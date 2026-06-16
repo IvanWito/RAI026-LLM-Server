@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    image: rai026-llm:dev
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/workspaces/R-AI-026/llm-server
+    command: /bin/bash -lc "uv sync --all-extras && ./run.sh"
+    restart: unless-stopped
