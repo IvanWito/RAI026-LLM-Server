@@ -16,96 +16,158 @@ This service receives a speech-to-text transcript, asks an LLM for a single robo
 - `app/prompts/system_prompt.txt` - safety/system prompt.
 - `setup_rai026_env.sh` - env + kernel setup script.
 
-## Setup
-1. First-time only (creates lockfile):
-```bash
-cd llm-server
-uv lock
-```
-2. Create/update environment and Jupyter kernel:
-```bash
-./setup_rai026_env.sh
-```
+## Install Server
 
-What the script does:
-- Runs `uv sync --frozen --all-extras` inside `llm-server`.
-- Installs/updates Jupyter kernel `Python (rai026)` for user scope.
+### Prerequisites
+- Docker and Docker Compose installed on your server
+- Ollama installed for LLM inference
 
-If kernel selection breaks after env changes:
+### Step 1: Clone the repository
 ```bash
-./llm-server/setup_rai026_env.sh --rebuild-kernel
+cd ~
+git clone <URL-del-repo> rai026-llm-server
+cd rai026-llm-server/llm-server
 ```
 
-## Devcontainer (Recommended For Team Dev)
-Open `llm-server` with VS Code Dev Containers:
-1. `Dev Containers: Open Folder in Container...`
-2. Select `llm-server`
-3. Wait for `postCreateCommand` (`uv sync --all-extras`) to finish
-
-The container definition is in:
-- `.devcontainer/devcontainer.json`
-- `.devcontainer/Dockerfile`
-
-## Run Server
-1. Create env file:
+### Step 2: Install Docker Compose (if not already installed)
 ```bash
-cp .env.example llm-server/.env
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+docker-compose version
 ```
-2. Start Ollama and pull the model configured in `.env` (default in example: `phi4:14b`):
+
+### Step 3: Install Ollama
 ```bash
-ollama serve
+curl -fsSL https://ollama.com/install.sh | sudo bash
+ollama version
+```
+
+### Step 4: Configure environment variables
+```bash
+cp .env.example .env
+nano .env
+```
+
+Update these key variables:
+- `SERVER_API_KEY=your_secure_api_key`
+- `LLM_MODEL=phi4:14b` (or your preferred model)
+- `OLLAMA_BASE_URL=http://localhost:11434`
+
+### Step 5: Download Ollama model
+```bash
 ollama pull phi4:14b
 ```
-3. Start API:
+
+Replace `phi4:14b` with your configured model from `.env`.
+
+---
+
+## Run
+
+### Starting the Services
+
+#### 1) Start Ollama (in background or separate terminal)
 ```bash
-cd llm-server
-./run.sh
+ollama serve &
 ```
 
-For local development auto-reload:
+#### 2) Build and start the LLM Server with Docker Compose
+From `llm-server/` directory:
 ```bash
-cd llm-server
-RELOAD=true ./run.sh
+cd ~/rai026-llm-server/llm-server
+docker-compose up -d --build
 ```
 
-## Remote Serving For Robot Access
-Run the server on an online machine with a public/reachable IP.
+This will:
+- Build the Docker image using `.devcontainer/Dockerfile`
+- Mount your code volume
+- Load environment variables from `.env`
+- Install dependencies with `uv sync --all-extras`
+- Start the FastAPI server on port 8000
 
-1. Configure `.env`:
+### Monitoring
+
+Check if containers are running:
 ```bash
-HOST=0.0.0.0
-PORT=8000
-SERVER_API_KEY=change_this_to_a_strong_secret
-CORS_ALLOW_ORIGINS=https://your-ui-domain.com,http://your-robot-gateway.local
-```
-2. Start server (no reload, production-like):
-```bash
-cd llm-server
-./run.sh
-```
-3. Open firewall/security group for TCP `8000` (or use a reverse proxy like Nginx/Caddy).
-4. Robot calls must include header:
-```http
-X-API-Key: <SERVER_API_KEY>
+docker-compose ps
 ```
 
-## Quick Checks
-Health:
+View logs:
+```bash
+docker-compose logs -f
+```
+
+### Testing the Server
+
+Health check:
 ```bash
 curl http://localhost:8000/health
 ```
 
-Process:
+Process endpoint:
 ```bash
 curl -X POST http://localhost:8000/v1/process \
-  -H 'Content-Type: application/json' \
-  -H 'X-API-Key: change_this_to_a_strong_secret' \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_secure_api_key" \
   -d '{
     "transcript": "please move forward slowly for one meter",
     "context": {"battery": 0.84, "obstacle_detected": false},
     "history": []
   }'
 ```
+
+### Stopping the Server
+
+```bash
+docker-compose down
+```
+
+---
+
+## Local Development (with auto-reload)
+
+### Using Dev Containers in VS Code
+1. Open `llm-server` folder in VS Code
+2. Run `Dev Containers: Open Folder in Container...`
+3. Wait for `postCreateCommand` to complete
+4. Start API with auto-reload:
+```bash
+RELOAD=true ./run.sh
+```
+
+### Or using uv directly (without Docker)
+```bash
+cd llm-server
+uv lock
+uv sync --all-extras
+RELOAD=true ./run.sh
+```
+
+---
+
+## Remote Serving For Robot Access
+
+Configure for production deployment:
+
+1. Update `.env`:
+```bash
+HOST=0.0.0.0
+PORT=8000
+SERVER_API_KEY=change_this_to_a_strong_secret
+CORS_ALLOW_ORIGINS=https://your-ui-domain.com,http://your-robot-gateway.local
+```
+
+2. Open firewall for TCP 8000 (or use reverse proxy):
+```bash
+sudo ufw allow 8000/tcp
+```
+
+3. Robot requests must include header:
+```http
+X-API-Key: <SERVER_API_KEY>
+```
+
+---
 
 ## Model Configuration Note
 - `.env.example` currently sets `LLM_MODEL=phi4:14b`.
