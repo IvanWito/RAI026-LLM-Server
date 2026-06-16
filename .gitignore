@@ -1,0 +1,64 @@
+# --- OS / editores ---
+.DS_Store
+**/.DS_Store
+Thumbs.db
+.vscode/**
+.idea/
+*.swp
+*.swo
+
+# --- Build C++ (CMake / make) ---
+build/
+**/build/
+*.o
+*.obj
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# --- Python ---
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so.bak
+
+# Virtualenvs (cualquier nombre habitual)
+mujoco_env/
+**/mujoco_env/
+.venv/
+venv/
+env/
+ENV/
+
+# --- MuJoCo runtime artifacts ---
+MJDATA.TXT
+MUJOCO_LOG.TXT
+**/MJDATA.TXT
+**/MUJOCO_LOG.TXT
+
+# --- ONNX / modelos descargados (si en algún momento los regenerás localmente) ---
+# (Dejamos `policy/ppo/policy.onnx` y `lib/onnxruntime/lib/*.so` en git porque
+#  son necesarios para correr el binario; si los movés a otra ruta, ignoralos
+#  ahí.)
+
+# --- Logs / coredumps ---
+*.log
+core
+core.*
+
+# --- LLM related ---
+.DS_Store
+**/.DS_Store
+.vscode/**
+build/*
+*/.env/
+**/.venv/
+**/__pycache__/
+*.pyc
+.env
+**/.env
+*.env
+*.env.*
+!**/.env.example
